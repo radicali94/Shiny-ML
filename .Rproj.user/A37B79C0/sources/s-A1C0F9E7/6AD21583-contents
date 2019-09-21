@@ -1,0 +1,439 @@
+#
+# This is the server logic of a Shiny web application. You can run the 
+# application by clicking 'Run App' above.
+#
+# Find out more about building applications with Shiny here:
+# 
+#    http://shiny.rstudio.com/
+#
+
+library(shiny)
+library(shinydashboard)
+library(ggplot2)
+library(FactoMineR)
+library(plyr)
+library(corrgram)
+library(ade4)
+library(factoextra)
+library(pca3d)
+library(ggcorrplot)
+library(DT)
+
+# Define server logic required to draw a histogram
+shinyServer( function(input, output, session) {
+  
+  data(decathlon)
+  temperature = read.table("temperature.csv",header = T ,row.names = 1, sep = ';')
+  conso = read.table("base_conso.csv",header = T ,row.names = 1, sep = ';')
+  #decath = decathlon[,1:12]
+  
+  # Return the requested dataset ----
+  datasetInput <- reactive({
+    switch(input$dataset,
+           "temperature" = temperature,
+           "consommation" = conso,
+           "decathlon" = decathlon)
+  })
+  
+  # Generate a summary of the dataset ----
+  output$summary <- renderPrint({
+    dataset <- datasetInput()
+    summary(dataset)
+  })
+  
+  #View dataset
+  output$view <- renderTable({
+    head(datasetInput(), n = input$obs)
+  })
+  
+  output$tbl = renderDataTable( datasetInput(), options = list(lengthChange = FALSE))
+  
+  
+  set.seed(122)
+  
+  histdata <- rnorm(500)
+  #d <- data.frame(x = rnorm(500))
+  
+  rangescorr <- reactiveValues(x = NULL, y = NULL)
+  
+  output$plotcorr <- renderPlot({
+    #corrgram(datasetInput(),order = T) +
+    corr <- round(cor( datasetInput()[sapply(datasetInput(),is.numeric)]), 1)
+    ggcorrplot(corr) +
+      geom_point()
+  })
+  
+  output$plotcorrmodal <- renderPlot({
+    #corrgram(datasetInput(),order = T) +
+    corr <- round(cor( datasetInput()[sapply(datasetInput(),is.numeric)]), 1)
+    ggcorrplot(corr) +
+      geom_point() +
+      coord_cartesian(xlim = rangescorr$x, ylim = rangescorr$y, expand = FALSE)
+  },width = 850,height = 500 )
+  
+  # When a double-click happens, check if there's a brush on the plot.
+  # If so, zoom to the brush bounds; if not, reset the zoom.
+  
+  observe({
+    brush <- input$plotcorr_brush
+    if (!is.null(brush)) {
+      rangescorr$x <- c(brush$xmin, brush$xmax)
+      rangescorr$y <- c(brush$ymin, brush$ymax)
+      
+    } else {
+      rangescorr$x <- NULL
+      rangescorr$y <- NULL
+    }
+  })
+  
+  #ACP
+  
+  rangespcaind <- reactiveValues(x = NULL, y = NULL)
+  
+  output$plotpcaind <- renderPlot({
+    res.pcaExtra = dudi.pca(datasetInput()[sapply(datasetInput(),is.numeric)], scale = T, scannf = F , nf =2)
+    fviz_pca_ind(res.pcaExtra,col.ind = "cos2") +
+      geom_point()
+  })
+  
+  output$plotpcaindmodal <- renderPlot({
+    res.pcaExtra = dudi.pca(datasetInput()[sapply(datasetInput(),is.numeric)], scale = T, scannf = F , nf =2)
+    fviz_pca_ind(res.pcaExtra,col.ind = "cos2") +
+      geom_point() +
+      coord_cartesian(xlim = rangespcaind$x, ylim = rangespcaind$y, expand = FALSE)
+  },width = 850,height = 500 )
+  
+  # When a double-click happens, check if there's a brush on the plot.
+  # If so, zoom to the brush bounds; if not, reset the zoom.
+  
+  observe({
+    brush <- input$plotpcaind_brush
+    if (!is.null(brush)) {
+      rangespcaind$x <- c(brush$xmin, brush$xmax)
+      rangespcaind$y <- c(brush$ymin, brush$ymax)
+      
+    } else {
+      rangespcaind$x <- NULL
+      rangespcaind$y <- NULL
+    }
+  })
+  
+  
+  
+  ################################
+  
+  rangespcavar <- reactiveValues(x = NULL, y = NULL)
+  
+  output$plotpcavar <- renderPlot({
+    res.pcaExtra = dudi.pca(datasetInput()[sapply(datasetInput(),is.numeric)], scale = T, scannf = F , nf =2)
+    fviz_pca_var(res.pcaExtra, col.var = "contrib") +
+      geom_point()
+  })
+  
+  output$plotpcavarmodal <- renderPlot({
+    res.pcaExtra = dudi.pca(datasetInput()[sapply(datasetInput(),is.numeric)], scale = T, scannf = F , nf =2)
+    fviz_pca_var(res.pcaExtra, col.var = "contrib") +
+      geom_point() +
+      coord_cartesian(xlim = rangespcavar$x, ylim = rangespcavar$y, expand = FALSE)
+  },width = 850,height = 500 )
+  
+  # When a double-click happens, check if there's a brush on the plot.
+  # If so, zoom to the brush bounds; if not, reset the zoom.
+  
+  observe({
+    brush <- input$plotpcavar_brush
+    if (!is.null(brush)) {
+      rangespcavar$x <- c(brush$xmin, brush$xmax)
+      rangespcavar$y <- c(brush$ymin, brush$ymax)
+      
+    } else {
+      rangespcavar$x <- NULL
+      rangespcavar$y <- NULL
+    }
+  })
+  
+  ########################################
+  
+  output$plotpcaeig <- renderPlot({
+    res.pcaExtra = dudi.pca(datasetInput()[sapply(datasetInput(),is.numeric)], scale = T, scannf = F , nf =2)
+    fviz_eig(res.pcaExtra)
+  })
+  
+  
+  
+  
+  ##################################
+  
+  # Linked plots (middle and right)
+  ranges2 <- reactiveValues(x = NULL, y = NULL)
+  
+  
+  
+  output$plot2 <- renderPlot({
+    ggplot(mtcars, aes(wt, mpg)) +
+      geom_point()
+  })
+  
+  output$plot3 <- renderPlot({
+    ggplot(mtcars, aes(wt, mpg)) +
+      geom_point() +
+      coord_cartesian(xlim = ranges2$x, ylim = ranges2$y, expand = FALSE)
+  })
+  
+  # When a double-click happens, check if there's a brush on the plot.
+  # If so, zoom to the brush bounds; if not, reset the zoom.
+  observe({
+    brush <- input$plot2_brush
+    if (!is.null(brush)) {
+      ranges2$x <- c(brush$xmin, brush$xmax)
+      ranges2$y <- c(brush$ymin, brush$ymax)
+      
+    } else {
+      ranges2$x <- NULL
+      ranges2$y <- NULL
+    }
+  })
+  
+  
+  
+  
+  
+  #Messages
+  output$messageMenu <- renderMenu({
+    messageData <- data.frame("from" = c("Sales Dept","New User","Support"),
+                              "message" = c("Sales are steady this month.","How do I register?","The new server is ready."),
+                              "time" = c("2019-07-01","10:30","13:45"),
+                              "icon" = c("chart-line", "question", "life-ring")
+                              )
+    # Code to generate each of the messageItems here, in a list. This assumes
+    # that messageData is a data frame with two columns, 'from' and 'message'.
+    msgs <- apply(messageData, 1, function(row) {
+      messageItem(from = row[["from"]], message = row[["message"]], time = row[["time"]], icon = icon(row[["icon"]]))
+    })
+    
+    # This is equivalent to calling:
+    #   dropdownMenu(type="messages", msgs[[1]], msgs[[2]], ...)
+    dropdownMenu(type = "messages", .list = msgs)
+  })
+  
+  #Notifications
+  output$notificationMenu <- renderMenu({
+    notificationData <- data.frame("text" = c("5 new users today","12 items delivered","Server load at 86%"),"icon" = c("users", "truck", "exclamation-triangle"), "status" = c("info","success","warning"))
+    
+    notifs <- apply(notificationData, 1, function(row) {
+      notificationItem(text = row[["text"]], icon = icon(row[["icon"]]), status = row[["status"]])
+    })
+    
+    dropdownMenu(type = "notifications", .list = notifs)
+  })
+  
+  #Tasks
+  output$taskMenu <- renderMenu({
+    taskData <- data.frame("text" = c("Documentation","Project X","Server deployment","Overall project"),"value" = c(90, 17, 75, 80), "color" = c("green","aqua","yellow","red"))
+    
+    tasks <- apply(taskData, 1, function(row) {
+      taskItem(text = row[["text"]], value = row[["value"]], color = row[["color"]])
+    })
+    
+    dropdownMenu(type = "tasks", .list = tasks)
+  })
+  
+  #Modals
+  observeEvent(input$show, {
+    showModal(modalDialog(
+      title = "Important message",
+      head(datasetInput(), n = input$obs),
+      easyClose = TRUE
+    ))
+  })
+  
+  #####Tabs####
+  #output$tabset1Selected <- renderText({
+  #  input$tabset1
+  #})
+  
+  ############Data cleaning############
+  
+  volumes = getVolumes()
+  observe({  
+    shinyFileChoose(input, "Btn_GetFile", roots = volumes, session = session)
+    
+    if(!is.null(input$Btn_GetFile)){
+      # browser()
+      file_selected<-parseFilePaths(volumes, input$Btn_GetFile)
+      output$txt_file <- renderText(as.character(file_selected$datapath))
+      myPath = as.character(file_selected$datapath)
+      
+    }
+  })
+  
+  ###########################
+  
+  file_selected<-reactive(parseFilePaths(volumes, input$Btn_GetFile))
+    
+  #myPath <- as.character(file_selected()$datapath) 
+  
+  #print(myPath)
+  
+  datasetclInput <- reactiveFileReader(
+                                      intervalMillis = 500,
+                                      session = session,
+                                      filePath = reactive(as.character(file_selected()$datapath)),
+                                      readFunc = read.csv,
+                                      sep =',',
+                                      na.strings = c(""," ","NA","NaN","Na","na")
+                  )
+  
+
+  #View dataset
+  output$viewcl <- renderTable({
+    head(datasetclInput(), n = input$obscl)
+  })
+  
+  # Generate a summary of the dataset ----
+  output$summarycl <- renderPrint({
+    summary(datasetclInput())
+  })
+  
+  output$strcl <- renderPrint({
+    str(datasetclInput())
+  })
+  
+  
+  output$tblcl <- renderDT( datasetclInput(),
+                            class = "display nowrap compact", # style
+                            filter = "top" # location of column filters
+                            )
+  
+  rangescorrcl <- reactiveValues(x = NULL, y = NULL)
+  
+  output$plotcorrcl <- renderPlot({
+    #corrgram(datasetInput(),order = T) +
+    corrcl <- round(cor( datasetclInput()[sapply(datasetclInput(),is.numeric)]), 1)
+    ggcorrplot(corrcl) +
+      geom_point()
+  })
+  
+  output$plotcorrmodalcl <- renderPlot({
+
+    #corrgram(datasetInput(),order = T) +
+    corrcl <- round(cor( datasetclInput()[sapply(datasetclInput(),is.numeric)]), 1)
+    ggcorrplot(corrcl) +
+      geom_point() +
+      coord_cartesian(xlim = rangescorrcl$x, ylim = rangescorrcl$y, expand = FALSE)
+  },width = 850,height = 500 )
+  
+  # When a double-click happens, check if there's a brush on the plot.
+  # If so, zoom to the brush bounds; if not, reset the zoom.
+  
+  observe({
+    brush <- input$plotcorr_brushcl
+    if (!is.null(brush)) {
+      rangescorrcl$x <- c(brush$xmin, brush$xmax)
+      rangescorrcl$y <- c(brush$ymin, brush$ymax)
+      
+    } else {
+      rangescorrcl$x <- NULL
+      rangescorrcl$y <- NULL
+    }
+  })
+  
+  ############Variables containing null values############
+  
+  outVar <- reactive({
+
+    vars <- names(which(sapply(datasetclInput(), anyNA)))
+    vars <- as.list(vars)
+    
+    return(vars)
+  })
+  
+  output$nullvariables = renderUI({
+    selectInput('nansel', 'Variables:', outVar())
+  })
+  
+  selected_na <- reactive({
+    if (is.null (input$nansel)) 
+      return(NULL) 
+    else 
+      return(input$nansel)
+    })
+  
+  output$naselected <- renderText({
+    if (is.null (input$nansel)) 
+      return(NULL) 
+    if(is.numeric(datasetclInput()[[input$nansel]]))
+      return(paste(as.character(input$nansel),'is numeric'))
+    if(is.factor(datasetclInput()[[input$nansel]]))
+      return(paste(as.character(input$nansel),'is factor'))
+  })
+  
+  numorfact <- reactive({
+    if(is.numeric(datasetclInput()[[input$nansel]]))
+    {
+      myaggs <- c('mean','median','min','max','zero')
+    }
+    if(is.factor(datasetclInput()[[input$nansel]]))
+    {
+      myaggs <-c('plus_frequent','moins_frequent')
+    }
+    return(myaggs)
+    
+  })
+  
+  
+  output$variables2 = renderUI({
+    selectInput('var2sel', 'Replace NAs with:', numorfact())
+  })
+  
+  
+  
+  observeEvent(input$doUpdate, {
+    dataset <- datasetclInput()
+    selcol <- selected_na()
+    print(selcol)
+    if(input$var2sel == "mean")
+    {
+      dataset[selected_na()][is.na(dataset[selected_na()])] <- mean(dataset[[selected_na()]], na.rm = TRUE)
+      write.csv(dataset,file = as.character(file_selected()$datapath), sep=",",row.names = FALSE)
+    }
+    if(input$var2sel == "median")
+    {
+      dataset[selected_na()][is.na(dataset[selected_na()])] <- median(dataset[[selected_na()]], na.rm = TRUE)
+      write.csv(dataset,file = as.character(file_selected()$datapath), sep=",",row.names = FALSE)
+    }
+    if(input$var2sel == "min")
+    {
+      dataset[selected_na()][is.na(dataset[selected_na()])] <- min(dataset[selected_na()], na.rm = TRUE)
+      write.csv(dataset,file = as.character(file_selected()$datapath), sep=",",row.names = FALSE)
+    }
+      
+    if(input$var2sel == "max")
+    {
+      dataset[selected_na()][is.na(dataset[selected_na()])] <- max(dataset[selected_na()], na.rm = TRUE)
+      write.csv(dataset,file = as.character(file_selected()$datapath), sep=",",row.names = FALSE)
+    }
+    
+    if(input$var2sel == "zero")
+    {
+      dataset[selected_na()][is.na(dataset[selected_na()])] <- 0
+      write.csv(dataset,file = as.character(file_selected()$datapath), sep=",",row.names = FALSE)
+    }
+    
+    if(input$var2sel == "plus_frequent")
+    {
+      dataset[selected_na()][is.na(dataset[selected_na()])] <- names(which.max(table(dataset[selected_na()])))
+      write.csv(dataset,file = as.character(file_selected()$datapath), sep=",",row.names = FALSE)
+    }
+    
+    if(input$var2sel == "moins_frequent")
+    {
+      dataset[selected_na()][is.na(dataset[selected_na()])] <- names(which.min(table(dataset[selected_na()])))
+      write.csv(dataset,file = as.character(file_selected()$datapath), sep=",",row.names = FALSE)
+    }
+  })
+  
+  
+
+  
+})

@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1567899202983.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "263597104",
+    "id" : "80BA55F1",
+    "lastKnownWriteTime" : 1567905576,
+    "last_content_update" : 1567905576627,
+    "path" : "C:/Users/Radhi Toujani/Desktop/ESPRIT_4DS2/StageGRAPHICS/RshinyTest/RadhiShinyTest/machLearn/app.R",
+    "project_path" : "app.R",
+    "properties" : {
+        "cursorPosition" : "728,20",
+        "scrollLine" : "694"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

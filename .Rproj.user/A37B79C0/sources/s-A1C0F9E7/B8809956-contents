@@ -1,0 +1,262 @@
+#
+# This is the user-interface definition of a Shiny web application. You can
+# run the application by clicking 'Run App' above.
+#
+# Find out more about building applications with Shiny here:
+# 
+#    http://shiny.rstudio.com/
+#
+
+library(shiny)
+library(shinyBS)
+library(shinydashboard)
+library(explor)
+library(factoextra)
+library(dygraphs)
+library(DT)
+library(shinyFiles)
+
+dashboardPage(skin = "purple",
+  #Header
+  dashboardHeader(
+    title = "Radhi Dashboard",
+    #Messages
+    dropdownMenuOutput("messageMenu"),
+    #Notifications
+    dropdownMenuOutput("notificationMenu"),
+    #Tasks
+    dropdownMenuOutput("taskMenu")
+  ),
+  
+  #Sidebar
+  dashboardSidebar(
+    sidebarMenu(id = 'sidebar',
+      #Search
+      sidebarSearchForm(textId = "searchText", buttonId = "searchButton",
+      label = "Search..."),
+      
+      menuItem("Time Series", tabName = "dashboard",icon = icon("dashboard")),
+      menuItem("Analyse Factorielle", tabName = "analyse", icon = icon("th"),
+               menuSubItem("ACP",tabName = "acp"),
+               menuSubItem("ACM",tabName = "acm")),
+      menuItem("Data Cleaning", tabName = "cleaning",icon = icon("cog", lib = "glyphicon"))
+    )
+  ),
+  
+  #Body
+  dashboardBody(
+    tabItems(
+      #First tab content
+      tabItem(tabName = "dashboard",
+              shinyAppDir("ShinyTimeseriesForecasting/",options = list(height = 635))
+      ),
+      #Second tab content
+      tabItem(tabName = "acp", titlePanel(h1("Analyse en Composantes Principales", align = "center")),
+              fluidRow(
+                box(
+                  
+                  title = "Dataset",
+                  status = "info",
+                  solidHeader = TRUE,
+                  collapsible = TRUE,
+                  id = "box1", height = "365px",
+                  
+                  fluidRow(
+                    # Input: Selector for choosing dataset ----
+                    column(4, 
+                           selectInput(inputId = "dataset",
+                                       label = "Choose a dataset:",
+                                       choices = c("temperature", "consommation", "decathlon"))),
+                    
+                    #Nombre d observations a afficher
+                    column(4,
+                           numericInput(inputId = "obs",
+                                        label = "Nombre d'observations:",
+                                        value = 10)),
+                    column(4,actionButton("showTable", "Zoom in", style='font-size:100%'),style='padding-top:25px;'),
+                    bsModal("modalExample", "Data Table", "showTable", size = "large",
+                            div(
+                              style = 'height:500px; width:875px; overflow-y: scroll; overflow-x: scroll;',
+                              dataTableOutput("tbl")
+                            )
+                            )
+                  ),
+                  
+                  div(style = 'height:230px; overflow-y: scroll; overflow-x: scroll;', tableOutput('view'))
+                ),
+                tabBox(
+                  side = "right", height = "300px",
+                  selected = "Correlogramme",
+                  tabPanel("Summary",
+                           div(style = 'height:265px; overflow-y: scroll;',
+                               verbatimTextOutput("summary")
+                               )
+                           ),
+                  tabPanel("Correlogramme", 
+                           div(style = 'height:265px; overflow-y: scroll; overflow-x: scroll;',
+                               plotOutput("plotcorr",
+                                          brush = brushOpts(
+                                            id = "plotcorr_brush",
+                                            resetOnNew = TRUE
+                                          ))
+                               ),
+                           actionButton("showCorr", "Zoom in", style='font-size:100%'),
+                           bsModal("modalCorr", "Correlation Plot", "showCorr", size = "large",
+                                   div(
+                                     style = 'height:500px; width:875px; overflow-y: scroll; overflow-x: scroll;',
+                                     plotOutput("plotcorrmodal")
+                                   )
+                           )
+                           
+                  )
+                )
+              ),
+              fluidRow(
+                tabBox(
+                  side = "left", height = "300px",
+                  selected = "Individus",
+                  tabPanel("Individus",
+                           div(style = 'height:300px; overflow-y: scroll; overflow-x: scroll;',
+                               plotOutput("plotpcaind",
+                                          height = 300,
+                                          brush = brushOpts(
+                                            id = "plotpcaind_brush",
+                                            resetOnNew = TRUE
+                                              )
+                                          )
+                               ),
+                           actionButton("showInd", "Zoom in", style='font-size:100%'),
+                           bsModal("modalInd", "Individuals Plot", "showInd", size = "large",
+                                   div(
+                                     style = 'height:500px; width:875px; overflow-y: scroll; overflow-x: scroll;',
+                                     plotOutput("plotpcaindmodal")
+                                   )
+                           )
+                           ),
+                  tabPanel("Variables",
+                           div(style = 'height:300px; overflow-y: scroll; overflow-x: scroll;',
+                           plotOutput("plotpcavar",
+                                      height = 300,
+                                      brush = brushOpts(
+                                        id = "plotpcavar_brush",
+                                        resetOnNew = TRUE
+                                          )
+                                      )
+                           ),
+                           actionButton("showVar", "Zoom in", style='font-size:100%'),
+                           bsModal("modalVar", "Variable Plot", "showVar", size = "large",
+                                   div(
+                                     style = 'height:500px; width:875px; overflow-y: scroll; overflow-x: scroll;',
+                                     plotOutput("plotpcavarmodal")
+                                   )
+                           )
+                  
+                  
+                  )
+                ),
+                box(
+                  title = "Valeurs propres", status = "success",
+                  solidHeader = TRUE,
+                  collapsible = TRUE,
+                  id = "boxeig", height = "400px", 
+                  tabPanel("eigenvalue", plotOutput("plotpcaeig",height = 340))
+                )
+                
+              )
+      ),
+      tabItem(tabName = "acm",
+              
+                shinyAppFile("app.R",options = list(height = 800,width = 1400))
+              
+              
+      ),
+      tabItem(tabName = "cleaning",
+              fluidRow(
+                box(
+                  
+                  title = "Dataset",
+                  status = "info",
+                  solidHeader = TRUE,
+                  collapsible = TRUE,
+                  id = "box1cl", height = "400px",
+                  
+                  fluidRow(
+                    # Input: Selector for choosing dataset ----
+                    column(4, 
+                           HTML("<b>","Charger un fichier CSV","</b>"),
+                           shinyFilesButton("Btn_GetFile", "Choose a file" ,
+                                            title = "Please select a file:", multiple = FALSE,
+                                            buttonType = "default", class = NULL,
+                                            style = 'width:180px;'
+                                            ),
+                           textOutput("txt_file")),
+                    
+                    
+                    #Nombre d observations a afficher
+                    column(4,
+                           numericInput(inputId = "obscl",
+                                        label = "Nombre d'observations:",
+                                        value = 10)),
+                    column(4,actionButton("showTablecl", "Zoom in", style='font-size:100%'),style='padding-top:25px;'),
+                    bsModal("modalExamplecl", "Data Table", "showTablecl", size = "large",
+                            div(
+                              style = 'height:500px; width:875px; overflow-y: scroll; overflow-x: scroll;',
+                              dataTableOutput("tblcl")
+                            )
+                    )
+                  ),
+                  
+                  div(style = 'height:250px; overflow-y: scroll; overflow-x: scroll;', tableOutput('viewcl'))
+                ),
+                tabBox(
+                  side = "right", height = "400px",
+                  selected = "Correlogrammecl",
+                  tabPanel("Summary",
+                           div(style = 'height:365px; overflow-y: scroll;',
+                               verbatimTextOutput("summarycl")
+                           )
+                  ),
+                  tabPanel("Structure",
+                           div(style = 'height:365px; overflow-y: scroll;',
+                               verbatimTextOutput("strcl")
+                           )
+                  ),
+                  tabPanel("Correlogramme", 
+                           div(style = 'height:365px; overflow-y: scroll; overflow-x: scroll;',
+                               plotOutput("plotcorrcl",
+                                          brush = brushOpts(
+                                            id = "plotcorr_brushcl",
+                                            resetOnNew = TRUE
+                                          ))
+                           ),
+                           actionButton("showCorrcl", "Zoom in", style='font-size:100%'),
+                           bsModal("modalCorrcl", "Correlation Plot", "showCorrcl", size = "large",
+                                   div(
+                                     style = 'height:500px; width:875px; overflow-y: scroll; overflow-x: scroll;',
+                                     plotOutput("plotcorrmodalcl")
+                                   )
+                           )
+                           
+                  ),
+                  
+                  tabPanel("Null values",
+                           div(style = 'height:365px; overflow-y: scroll;',
+                               uiOutput('nullvariables'),
+                               uiOutput('variables2'),
+                               verbatimTextOutput("naselected"),
+                               actionButton("doUpdate", "Update Dataset")
+                           )
+                    
+                  )
+                  
+                )
+              ),
+              fluidRow(
+                
+                
+                
+              )
+      )
+    )
+  )
+)

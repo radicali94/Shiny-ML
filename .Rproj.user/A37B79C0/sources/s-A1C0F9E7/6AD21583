@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1567899216506.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "6AD21583",
+    "lastKnownWriteTime" : 1567824668,
+    "last_content_update" : 1567824668,
+    "path" : "C:/Users/Radhi Toujani/Desktop/ESPRIT_4DS2/StageGRAPHICS/RshinyTest/RadhiShinyTest/server.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "286,0",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
